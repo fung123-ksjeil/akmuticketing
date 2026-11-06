@@ -20,5 +20,5 @@ globalThis.readTicketPage=()=>{
  }
  const heading=[...document.querySelectorAll('h1,h2')].find(visible);
  const source=new URL(location.href);const perf=[...source.searchParams].find(([key])=>key.toLowerCase()==='idperf');
- return {url:source.origin+source.pathname+(perf?'?IdPerf='+encodeURIComponent(perf[1]):''),title:(heading?.textContent||document.title||'').trim().slice(0,160),capturedAt:new Date().toISOString(),dates:[...dates].sort().slice(0,30),times:[...times].sort().slice(0,20),grades:[...grades].slice(0,12),sections:[...sections.values()].slice(0,40),frames:document.querySelectorAll('iframe').length,canvases:document.querySelectorAll('canvas').length};
+ return {url:source.origin+source.pathname+(perf?'?IdPerf='+encodeURIComponent(perf[1]):''),title:(heading?.textContent||document.title||'').trim().slice(0,160),capturedAt:new Date().toISOString(),dates:[...dates].sort().slice(0,30),times:[...times].sort().slice(0,20),grades:[...grades].slice(0,12),sections:[...sections.values()].slice(0,40),bookingCandidates:typeof TicketBookingEntry==='object'?TicketBookingEntry.candidates().length:0,frames:document.querySelectorAll('iframe').length,canvases:document.querySelectorAll('canvas').length};
 };
