@@ -18,7 +18,7 @@ globalThis.TicketRunner=(action,config)=>{
    return {section:get('section'),row:get('row'),number:Number(raw),block:get('block'),rowIndex:Number(e.getAttribute(config.rowIndexAttr||'data-row-index')),rowTotal:Number(e.getAttribute(config.rowTotalAttr||'data-row-total')),available:visible(e)&&get('available')===(config.availableValue??'true'),x:get('x')===null?null:Number(get('x')),y:get('y')===null?null:Number(get('y')),element:e};
   });
  }
- function choose(){return TicketPlanner.chooseWithFallback(readSeats(),plan.count,plan.sections,config.adjacent===true,plan.position);}
+ function choose(){if(config.anySection===true)return TicketPlanner.chooseFirstAdjacent(readSeats(),2);return TicketPlanner.chooseWithFallback(readSeats(),plan.count,plan.sections,config.adjacent===true,plan.position);}
  function candidate(){
   clear();if(!config.seat)return '좌석 선택자를 지정하세요.';
   const group=choose();if(!group.length)return '조건에 맞는 연속 좌석이 없습니다. 인접 구역은 검증된 배치 좌표가 있어야 탐색합니다.';
@@ -108,22 +108,22 @@ globalThis.TicketRunner=(action,config)=>{
       const dates=all(step.selector);if(dates.length!==1)throw Error('목표 날짜 버튼이 하나가 아닙니다.');
       if(!step.dateClicked){step.dateClicked=now;dates[0].click();lastClick=now;}
       const selected=all(step.selected);if(selected.length===1&&TicketYes24Flow.sameDate(selected[0].value||selected[0].textContent,step.date))index++;
-      else if(now-step.dateClicked>5000)throw Error('선택 날짜가 2027년 1월 2일인지 확인되지 않았습니다.');
+      else if(now-step.dateClicked>5000)throw Error('선택 날짜가 '+step.date+'인지 확인되지 않았습니다.');
      }
      timer=setTimeout(tick,200);return;
     }
     if(step.type==='session'){
      const sessions=all(step.selector);if(sessions.length!==1)throw Error('회차 선택 요소가 하나가 아닙니다.');const el=sessions[0];
      if(el.tagName==='SELECT'){
-      const options=[...el.options].filter(o=>!o.disabled&&TicketYes24Flow.sameTime(o.textContent,step.time));if(options.length!==1)throw Error('17시 회차를 하나로 확인할 수 없습니다.');
+      const options=[...el.options].filter(o=>!o.disabled&&TicketYes24Flow.sameTime(o.textContent,step.time));if(options.length!==1)throw Error('목표 회차를 하나로 확인할 수 없습니다.');
       if(el.value!==options[0].value){el.value=options[0].value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}
-      if(el.value!==options[0].value)throw Error('17시 회차 선택을 확인하지 못했습니다.');
+      if(el.value!==options[0].value)throw Error('목표 회차 선택을 확인하지 못했습니다.');
      }else{
-      if(!TicketYes24Flow.sameTime(el.textContent||el.value,step.time))throw Error('17시 회차 버튼인지 확인되지 않았습니다.');
+      if(!TicketYes24Flow.sameTime(el.textContent||el.value,step.time))throw Error('목표 회차 버튼인지 확인되지 않았습니다.');
       if(!step.clicked){step.clicked=now;el.click();}
       const selected=step.selected?all(step.selected):[];
       const verified=(selected.length===1&&TicketYes24Flow.sameTime(selected[0].textContent||selected[0].value,step.time))||el.getAttribute('aria-selected')==='true'||el.getAttribute('aria-pressed')==='true'||el.checked===true;
-      if(!verified){if(now-step.clicked>5000)throw Error('17시 회차 선택 상태를 확인하지 못했습니다. selectedSession 어댑터가 필요합니다.');timer=setTimeout(tick,200);return;}
+      if(!verified){if(now-step.clicked>5000)throw Error('목표 회차 선택 상태를 확인하지 못했습니다. selectedSession 어댑터가 필요합니다.');timer=setTimeout(tick,200);return;}
      }
      index++;lastClick=now;timer=setTimeout(tick,200);return;
     }

@@ -22,3 +22,4 @@ test('앞·중간·뒤는 실제 열 순서로 구분함',()=>{
  for(const [position,valid] of [['front',[1,2,3]],['middle',[4,5,6]],['back',[7,8,9]]]){const group=TicketPlanner.chooseWithFallback(seats,4,['104'],false,position);assert.equal(group.length,4);assert.ok(group.every(s=>valid.includes(s.rowIndex)));}
  assert.deepEqual(TicketPlanner.chooseWithFallback(row('104'),2,['104'],false,'middle'),[]);
 });
+test('구역·중앙 선호 없이 처음 발견한 연속 2석',()=>{const seats=[...row('other').filter(s=>[1,3,4].includes(s.number)),...row('104')];assert.deepEqual(TicketPlanner.chooseFirstAdjacent(seats).map(s=>[s.section,s.number]),[['other',3],['other',4]]);assert.deepEqual(TicketPlanner.chooseFirstAdjacent([{section:'A',row:'1',number:1,block:'L',available:true},{section:'A',row:'1',number:2,block:'R',available:true}]),[]);});
