@@ -5,8 +5,8 @@
   const targetDate=plan.show.slice(0,10),targetTime=plan.show.slice(11,16);
   return [
    {type:'click',selector:map.booking,label:'예매하기'},
-   {type:'calendar',stage:map.calendarStage,month:map.calendarMonth,nextMonth:map.calendarNext,selector:map.calendarDay,selected:map.selectedDate,date:targetDate,label:'2027년 1월 2일 선택'},
-   {type:'session',stage:map.calendarStage,selector:map.session,selected:map.selectedSession||null,time:targetTime,label:'17시 회차 선택'},
+   {type:'calendar',stage:map.calendarStage,month:map.calendarMonth,nextMonth:map.calendarNext,selector:map.calendarDay,selected:map.selectedDate,date:targetDate,label:targetDate+' 선택'},
+   {type:'session',stage:map.calendarStage,selector:map.session,selected:map.selectedSession||null,time:targetTime,label:targetTime+' 회차 선택'},
    {type:'click',stage:map.calendarStage,selector:map.seatEntry,arrive:map.seatStage,label:'좌석 화면 열기'},
    {type:'seats',stage:map.seatStage,label:'희망 연속 좌석 선택'},
    {type:'click',stage:map.seatStage,selector:map.seatDone,leave:map.seatStage,arrive:map.seatConfirmationStage,label:'좌석선택 완료'},

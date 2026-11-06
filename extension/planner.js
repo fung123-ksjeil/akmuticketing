@@ -33,5 +33,11 @@
   const fallback=points.filter(p=>!preferences.includes(p.section)).map(p=>({...p,distance:Math.min(...anchors.map(a=>Math.hypot(a.x-p.x,a.y-p.y)))})).sort((a,b)=>a.distance-b.distance).map(p=>p.section);
   return chooseSeats(eligible,count,fallback);
  }
- root.TicketPlanner={chooseSeats,chooseWithFallback,sections};
+ function chooseFirstAdjacent(seats,count=2){
+  if(count!==2)return [];
+  const rows=new Map();for(const s of seats){if(!s.available||!s.block||!s.row||!s.section||!Number.isInteger(s.number))continue;const key=JSON.stringify([s.section,s.row,s.block]);if(!rows.has(key))rows.set(key,[]);rows.get(key).push(s);}
+  for(const row of rows.values()){row.sort((a,b)=>a.number-b.number);for(let i=0;i<row.length-1;i++)if(row[i+1].number===row[i].number+1)return [row[i],row[i+1]];}
+  return [];
+ }
+ root.TicketPlanner={chooseSeats,chooseWithFallback,chooseFirstAdjacent,sections};
 })(globalThis);

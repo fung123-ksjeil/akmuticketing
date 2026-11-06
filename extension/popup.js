@@ -63,3 +63,5 @@ for(const action of ['prepare','login-done','cancel-prepare'])$(action).onclick=
 };
 
 if(stored.lastPreparation?.id===activeId)$('status').textContent=stored.lastPreparation.message;
+
+$('live-practice').onclick=()=>chrome.tabs.create({url:chrome.runtime.getURL('live-practice.html')});

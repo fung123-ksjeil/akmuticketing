@@ -116,3 +116,19 @@ dialog::backdrop { background:#0005; }
 
 .akmu-dashboard header { margin-bottom:14px; }
 .akmu-dashboard .event-line { margin-bottom:12px; }
+
+.akmu-dashboard { max-width:1320px; }
+.akmu-dashboard header h1 { font-size:17px; letter-spacing:-.3px; }
+.akmu-dashboard header { margin-bottom:8px; }
+.akmu-dashboard .connection-status { font-size:10px; margin:0 0 6px; }
+.akmu-dashboard .event-line { font-size:10px; gap:18px; margin-bottom:10px; }
+.workspace { display:grid; grid-template-columns:minmax(0,1fr) 225px; gap:18px; align-items:start; }
+.quick-start { padding:17px; margin:0; font-size:12px; }
+.quick-start h2 { font-size:13px; margin:0 0 8px; }
+.quick-start h2:not(:first-child) { margin-top:22px; }
+.quick-start ol { padding-left:18px; margin:0; line-height:1.9; }
+.quick-start p { font-size:11px; line-height:1.6; }
+.quick-start .note { color:#71816f; }
+.quick-start code { font-size:11px; overflow-wrap:anywhere; }
+@media(max-width:1100px){.workspace{grid-template-columns:minmax(0,1fr)}.quick-start{display:grid;grid-template-columns:1fr 1fr;column-gap:24px}.quick-start h2{grid-column:1/-1}.quick-start h2:not(:first-child){margin-top:16px}}
+@media(max-width:600px){.quick-start{display:block}.akmu-dashboard header nav{font-size:11px;gap:12px}.akmu-dashboard .event-line{gap:5px}}
