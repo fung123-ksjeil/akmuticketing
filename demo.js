@@ -2,7 +2,7 @@ const $=id=>document.getElementById(id);const selected=new Set();
 let preferences=AkmuPreset.plan();try{preferences=AkmuPreset.plan(JSON.parse(localStorage.getItem('akmuPreferences')||'{}'));}catch{}
 function log(text){const li=document.createElement('li');li.textContent=text;$('log').append(li);}
 function show(id){for(const stage of ['booking','human-check','calendar-stage','seat-stage','seat-confirmation','discount-stage','delivery-stage','payment-stage'])$(stage).hidden=stage!==id;}
-const mapping={booking:'#booking',calendarStage:'#calendar-stage',calendarMonth:'#calendar-month',calendarNext:'#calendar-next',calendarDay:'#calendar-day',selectedDate:'#selected-date',session:'#session',seatEntry:'#seat-entry',seatStage:'#seat-stage',seatDone:'#seat-done',seatConfirmationStage:'#seat-confirmation',seatConfirmationNext:'#confirm-next',discountStage:'#discount-stage',discountNext:'#discount-next',deliveryStage:'#delivery-stage',deliveryNext:'#delivery-next',paymentStage:'#payment-stage',naverPay:'#naver-pay',agreeAll:'#agree-all',openPayment:'#open-payment'};
+const mapping={booking:'#booking',calendarStage:'#calendar-stage',calendarMonth:'#calendar-month',calendarNext:'#calendar-next',calendarDay:'#calendar-day',selectedDate:'#selected-date',session:'#session',seatEntry:'#seat-entry',seatStage:'#seat-stage',seatDone:'#seat-done',seatConfirmationStage:'#seat-confirmation',seatConfirmationNext:'#confirm-next',discountStage:'#discount-stage',discountNext:'#discount-next',deliveryStage:'#delivery-stage',deliveryNext:'#delivery-next',paymentStage:'#payment-stage',bankTransfer:'#bank-transfer',bankSelect:'#bank-select',agreeAll:'#agree-all',submitBooking:'#submit-booking',reservationComplete:'#reservation-complete'};
 $('start-demo').onclick=()=>{
  const kst=date=>new Date(date.getTime()+9*3600000).toISOString().slice(0,16);
  const config={plan:{...preferences,url:location.href,open:kst(new Date())},booking:'#booking',seat:'.demo-seat',adjacent:true,useYes24Sequence:true,yes24Mapping:mapping,manualGate:'#human-check'};
@@ -27,7 +27,11 @@ $('seat-done').onclick=()=>{if(selected.size!==preferences.count)return;$('selec
 $('confirm-next').onclick=()=>{show('discount-stage');log('다음단계 1 → 할인/쿠폰');};
 $('discount-next').onclick=()=>{show('delivery-stage');log('다음단계 2 → 수령방법');};
 $('delivery-next').onclick=()=>{show('payment-stage');log('다음단계 3 → 결제방법');};
-$('naver-pay').onclick=()=>log('네이버페이 선택');$('agree-all').onclick=()=>log('전체 동의 '+$('agree-all').checked);
-$('open-payment').onclick=()=>{if(!$('naver-pay').checked||!$('agree-all').checked)return;log('결제하기 → 네이버페이 창 (연습)');$('naver-dialog').showModal();};
-$('final-payment').onclick=()=>{$('naver-dialog').close();$('done').textContent='연습 완료! 실제 결제나 좌석 확보는 발생하지 않았습니다.';log('사용자가 직접 동의하고 결제하기 클릭');};
+$('bank-transfer').onclick=()=>log('무통장입금 선택');$('agree-all').onclick=()=>log('전체 동의 '+$('agree-all').checked);
+$('bank-select').onchange=()=>log('입금은행 '+$('bank-select').selectedOptions[0].textContent);
+$('submit-booking').onclick=()=>{
+ if(!$('bank-transfer').checked||!$('agree-all').checked||!$('bank-select').value)return;
+ $('payment-stage').hidden=true;$('reservation-complete').hidden=false;$('bank-result').textContent='선택한 입금은행: '+$('bank-select').selectedOptions[0].textContent;
+ $('done').textContent='연습 완료! 실제 예매 신청·결제·입금은 발생하지 않았습니다.';log('결제하기 → 무통장 예매 신청 완료 (연습)');
+};
 $('reset').onclick=()=>location.reload();
