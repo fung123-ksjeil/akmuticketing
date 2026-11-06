@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "공연 예매 도우미",
-  "version": "2.0.0",
-  "description": "공연 링크 등록, 시작 알림, 화면 사전 점검과 확인한 버튼·연속 좌석 선택 보조",
+  "name": "악뮤 고양 킨텍스 예매 도우미",
+  "version": "3.0.0",
+  "description": "악뮤 고양 킨텍스 공연 전용 예매 준비·시작 알림·연속 좌석 선택 보조",
   "permissions": [
     "storage",
     "activeTab",
@@ -17,8 +17,6 @@
     "default_popup": "popup.html"
   },
   "optional_host_permissions": [
-    "https://*/*",
-    "http://localhost/*",
-    "http://127.0.0.1/*"
+    "https://ticket.yes24.com/*"
   ]
 }

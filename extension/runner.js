@@ -1,5 +1,5 @@
 globalThis.TicketRunner=(action,config)=>{
- const plan=TicketPlan.normalizePlan(config.plan);
+ const plan={...TicketPlan.normalizePlan(config.plan),position:config.plan.position};
  const visible=e=>!!e.getClientRects().length&&!e.disabled&&e.getAttribute('aria-disabled')!=='true';
  const all=selector=>selector?[...document.querySelectorAll(selector)].filter(visible):[];
  const samePage=()=>location.href.split('#')[0]===new URL(plan.url).href.split('#')[0];
@@ -13,11 +13,12 @@ globalThis.TicketRunner=(action,config)=>{
   return elements.map(e=>{
    const get=k=>e.getAttribute(attrs[k]);const raw=get('number');
    if(!get('section')||!get('row')||!get('block')||!/^\d+$/.test(raw||'')||get('available')===null)throw Error('좌석 메타데이터가 부족합니다. 구역·열·번호·판매 가능 여부·통로 구분 어댑터가 필요합니다.');
+   if(plan.position&&(!/^\d+$/.test(e.getAttribute(config.rowIndexAttr||'data-row-index')||'')||!/^\d+$/.test(e.getAttribute(config.rowTotalAttr||'data-row-total')||'')))throw Error('앞·중간·뒤 선택을 위한 실제 열 순서·전체 열 수 어댑터가 필요합니다.');
    const id=[get('section'),get('row'),get('number')].join('|');if(seen.has(id))throw Error('중복 좌석 정보입니다. 어댑터를 확인하세요.');seen.add(id);
-   return {section:get('section'),row:get('row'),number:Number(raw),block:get('block'),available:visible(e)&&get('available')===(config.availableValue??'true'),x:get('x')===null?null:Number(get('x')),y:get('y')===null?null:Number(get('y')),element:e};
+   return {section:get('section'),row:get('row'),number:Number(raw),block:get('block'),rowIndex:Number(e.getAttribute(config.rowIndexAttr||'data-row-index')),rowTotal:Number(e.getAttribute(config.rowTotalAttr||'data-row-total')),available:visible(e)&&get('available')===(config.availableValue??'true'),x:get('x')===null?null:Number(get('x')),y:get('y')===null?null:Number(get('y')),element:e};
   });
  }
- function choose(){return TicketPlanner.chooseWithFallback(readSeats(),plan.count,plan.sections,config.adjacent===true);}
+ function choose(){return TicketPlanner.chooseWithFallback(readSeats(),plan.count,plan.sections,config.adjacent===true,plan.position);}
  function candidate(){
   clear();if(!config.seat)return '좌석 선택자를 지정하세요.';
   const group=choose();if(!group.length)return '조건에 맞는 연속 좌석이 없습니다. 인접 구역은 검증된 배치 좌표가 있어야 탐색합니다.';

@@ -1,7 +1,7 @@
 (function(root){
  const sections=['104','105','106','103','107'];
  function chooseSeats(seats,count,preferences=sections){
-  if(!Number.isInteger(count)||count<1||count>10)return [];
+  if(!Number.isInteger(count)||count<1||count>4)return [];
   const candidates=[];
   const order=preferences.length?preferences:[...new Set(seats.map(s=>String(s.section)))];
   for(const section of order){
@@ -23,14 +23,15 @@
   candidates.sort((a,b)=>a.section-b.section||a.distance-b.distance);
   return candidates[0]?.group||[];
  }
- function chooseWithFallback(seats,count,preferences=sections,adjacent=false){
-  const primary=chooseSeats(seats,count,preferences);if(primary.length||!adjacent||!preferences.length)return primary;
+ function chooseWithFallback(seats,count,preferences=sections,adjacent=false,position=null){
+  const eligible=position?seats.filter(s=>{if(!Number.isInteger(s.rowIndex)||!Number.isInteger(s.rowTotal)||s.rowIndex<1||s.rowIndex>s.rowTotal)return false;const a=Math.ceil(s.rowTotal/3),b=Math.ceil(2*s.rowTotal/3);return s.rowTotal===1||(position==='front'?s.rowIndex<=a:position==='middle'?s.rowIndex>a&&s.rowIndex<=b:s.rowIndex>b);}):seats;
+  const primary=chooseSeats(eligible,count,preferences);if(primary.length||!adjacent||!preferences.length)return primary;
   if(seats.some(s=>!Number.isFinite(s.x)||!Number.isFinite(s.y)))return [];
   const centers=new Map();for(const s of seats){if(!centers.has(String(s.section)))centers.set(String(s.section),[]);centers.get(String(s.section)).push(s);}
   const mean=list=>({x:list.reduce((a,s)=>a+s.x,0)/list.length,y:list.reduce((a,s)=>a+s.y,0)/list.length});
   const points=[...centers].map(([section,list])=>({section,...mean(list)})),anchors=points.filter(p=>preferences.includes(p.section));if(!anchors.length)return [];
   const fallback=points.filter(p=>!preferences.includes(p.section)).map(p=>({...p,distance:Math.min(...anchors.map(a=>Math.hypot(a.x-p.x,a.y-p.y)))})).sort((a,b)=>a.distance-b.distance).map(p=>p.section);
-  return chooseSeats(seats,count,fallback);
+  return chooseSeats(eligible,count,fallback);
  }
  root.TicketPlanner={chooseSeats,chooseWithFallback,sections};
 })(globalThis);

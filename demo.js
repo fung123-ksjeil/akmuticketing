@@ -1,11 +1,9 @@
 const $=id=>document.getElementById(id);const selected=new Set();
 function log(text){const li=document.createElement('li');li.textContent=text;$('log').append(li);}
-function localKst(date){return new Date(date.getTime()+9*3600000).toISOString().slice(0,16);}
-$('export-demo').onclick=()=>{
- // Minute precision in the normal plan is expanded by scheduling at the next minute.
- const opening=new Date(Math.ceil((Date.now()+15000)/60000)*60000);
- const plan={id:'practice-concert',name:'연습 공연 (실제 구매 없음)',url:new URL('demo.html',location.href).href,show:localKst(new Date(opening.getTime()+86400000)),open:localKst(opening),count:2,sections:['104','105','106','103','107']};
- const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(plan,null,2)],{type:'application/json'}));a.download='practice-concert.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);log('연습 설정 내보내기 · 시작 '+plan.open.replace('T',' ')+' KST (15~75초 뒤)');
+$('start-demo').onclick=()=>{
+ const kst=date=>new Date(date.getTime()+9*3600000).toISOString().slice(0,16);
+ const config={plan:{name:'악뮤 예매 흐름 연습',url:location.href,show:kst(new Date(Date.now()+86400000)),open:kst(new Date()),count:2,sections:['104','105','106','103','107']},booking:'#booking',seat:'.demo-seat',adjacent:true,flow:'WAIT #human-check\nSEATS\n#seat-next\nWAIT #payment\n#receipt',manualGate:'#human-check, #payment'};
+ try{log(TicketRunner('arm',config));}catch(e){log(e.message);}
 };
 for(const [i,section] of ['104','105','106','103','107','108','109'].entries()){
  const row=document.createElement('div');row.className='seatrow';const label=document.createElement('span');label.textContent=section+'구역 A열';row.append(label);
