@@ -109,3 +109,10 @@ fieldset { border:0; padding:0; margin:16px 0; }legend { font-size:12px; margin-
 #payment-stage input { display:inline-block; width:auto; height:auto; margin-right:6px; }
 dialog { border:1px solid #d8dfd3; border-radius:12px; padding:28px; max-width:90vw; }
 dialog::backdrop { background:#0005; }
+
+.help-button { padding:0; background:none; color:#526a58; font-size:12px; font-weight:normal; text-decoration:underline; text-underline-offset:3px; }
+.connection-status { font-size:11px; color:#71816f; margin:0 0 10px; }
+.quick-steps { padding-left:22px; font-size:14px; line-height:2.2; }
+
+.akmu-dashboard header { margin-bottom:14px; }
+.akmu-dashboard .event-line { margin-bottom:12px; }

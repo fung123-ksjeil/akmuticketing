@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>악뮤 고양 킨텍스 예매 도우미</title><link rel="stylesheet" href="style.css"></head><body>
 <main class="dashboard akmu-dashboard">
- <header><h1>악뮤 · 고양 킨텍스</h1><nav aria-label="도움말"><a href="demo.html">연습</a><a href="https://github.com/fung123-ksjeil/akmuticketing/archive/refs/heads/main.zip">확장 다운로드</a><a href="https://github.com/fung123-ksjeil/akmuticketing#readme">사용법</a></nav></header>
+ <header><h1>악뮤 · 고양 킨텍스</h1><nav aria-label="도움말"><a href="https://github.com/fung123-ksjeil/akmuticketing/archive/refs/heads/main.zip">확장 다운로드</a><button type="button" id="help" class="help-button">사용법</button></nav></header>
+ <p class="connection-status">좌석 설정 가능 · 실제 예스24 자동 예매 연동은 준비 중</p>
  <div class="event-line"><span>공연 <b>2027. 1. 2. (토) 17:00</b></span><span>예매 오픈 <b>2026. 11. 10. (화) 20:00</b></span></div>
  <div class="grid booking-grid">
   <section class="card map-card"><h2>구역 선택</h2><svg id="seat-map" aria-label="악뮤 고양 킨텍스 구역 배치도"></svg><div class="map-legend"><span class="vip">STANDING·VIP</span><span class="r">R</span><span class="limited">시야제한</span><span class="chosen">선택 구역</span></div><p class="map-note">제공하신 배치도 기준 · 실시간 잔여 좌석 아님</p></section>
@@ -13,4 +14,5 @@
    <button type="submit" class="full">설정 저장</button><button type="button" id="export" class="secondary full">확장에 전달할 설정 받기 ↓</button><p id="saved" role="status"></p>
   </form><div class="opening"><span>예매 시작까지 · 한국시간</span><p id="countdown" class="clock"></p><button id="open-page" class="full">예스24 예매 페이지 열기 ↗</button></div></section>
  </div><footer>자동 클릭은 Chrome 확장에서 실행 · 실제 예스24 연동은 준비 중 · 마지막 결제하기·인증·입금은 직접 진행</footer>
+<dialog id="quick-guide" aria-labelledby="guide-title"><h2 id="guide-title">사용법</h2><ol class="quick-steps"><li><b>구역·위치·수량</b>을 고릅니다.</li><li><b>설정 저장</b>을 누릅니다.</li><li>자동 클릭은 <b>Chrome 확장</b>에서 준비합니다.</li></ol><p class="hint">실제 예스24 자동 예매 연동은 아직 미완료입니다.<br>마지막 결제하기·인증·입금은 직접 진행합니다.</p><p><a href="https://github.com/fung123-ksjeil/akmuticketing#readme" target="_blank" rel="noopener">확장 설치 방법</a></p><button type="button" id="close-help">닫기</button></dialog>
 </main><script src="extension/plan.js"></script><script src="extension/preset.js"></script><script src="seating-map.js"></script><script src="app.js"></script></body></html>
