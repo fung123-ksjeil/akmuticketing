@@ -1,5 +1,5 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>실제 공연 연습</title><link rel="stylesheet" href="practice.css"></head><body><main>
-<header><h1>실제 공연 연습</h1><p>실제 예매처를 엽니다. 마지막 결제하기는 직접 진행합니다.</p></header>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>실제 예매 테스트</title><link rel="stylesheet" href="practice.css"></head><body><main>
+<header><h1>실제 예매 테스트</h1><p>실제 예매처를 엽니다. 마지막 결제하기는 직접 진행합니다.</p></header>
 <label>공연<select id="target"></select></label><div class="actions"><button id="open">공연 페이지 열기 ↗</button><button id="read" class="secondary">현재 예매 화면 정보 읽기</button></div>
 <p id="status" role="status">공연 페이지를 열어 로그인한 뒤 정보를 읽으세요.</p>
 <section><h2 id="title">현재 공연 정보 미확인</h2><p id="observed"></p><div class="columns"><label>검출된 날짜<select id="date"><option value="">정보 읽기 필요</option></select></label><label>검출된 회차<select id="time"><option value="">정보 읽기 필요</option></select></label><label>수량<select id="count" disabled><option selected>2</option></select></label></div><p class="note">가장 빠른 날짜·회차 후보를 우선합니다. 구역 무관, 연속 2석으로 고정합니다. 검출된 날짜·시간은 현재 화면의 후보입니다. 실제 판매 회차인지 예매처에서 확인하세요.</p><h3>현재 화면의 좌석 정보</h3><div id="seats">미확인</div><p id="grades"></p></section>

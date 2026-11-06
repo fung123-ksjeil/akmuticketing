@@ -6,7 +6,13 @@ $('target').onchange=()=>{reset();$('status').textContent='공연을 변경했�
 $('open').onclick=async()=>{const tab=await chrome.tabs.create({url:target().url,active:true});boundTab=tab.id;};
 async function adapter(){
  config=null;$('start').disabled=true;const profiles=(await chrome.storage.local.get('profiles')).profiles||{};const p=profiles[target().url];
- if(!p?.practiceVerified||!p.useYes24Sequence||!p.seat){$('readiness').textContent='이 공연의 실제 버튼·좌석 연동은 아직 미검증입니다. 정보 읽기만 가능합니다.';return;}
+ if(!p?.practiceVerified||!p.useYes24Sequence||!p.seat){
+  const main=reports.find(r=>r.frameId===0);
+  if(main&&PracticeCatalog.matches(main.url,target().id)&&main.bookingCandidates===1&&!main.url.includes('PerfSaleProcess')){
+   config={entryOnly:true};$('start').disabled=false;$('start').textContent='예매하기 한 번 클릭';$('readiness').textContent='현재 공연의 예매하기 버튼 1개를 확인했습니다. 첫 버튼만 클릭할 수 있으며, 이후 날짜·좌석 자동 진행은 미연동입니다.';
+  }else{$('start').textContent='예매 시작 · 버튼 확인 필요';$('readiness').textContent='현재 화면의 예매하기 버튼을 확인하지 못했습니다. 공연 상세 페이지에서 정보를 다시 읽으세요. 전체 자동 진행은 미연동입니다.';}
+  return;
+ }
  try{TicketYes24Flow.build({show:'2027-01-02T17:00'},p.yes24Mapping);config=p;$('readiness').textContent='저장된 공연별 연동 설정을 찾았습니다. 예매처에서 날짜·회차·좌석 조건을 확인하세요.';$('start').textContent='예매 시작';$('start').disabled=!($('date').value&&$('time').value&&boundTab);}catch(e){$('readiness').textContent=e.message;}
 }
 for(const id of ['date','time'])$(id).onchange=adapter;
@@ -16,7 +22,7 @@ $('read').onclick=async()=>{
   const tabs=await chrome.tabs.query({url:'https://ticket.yes24.com/*'});const matching=tabs.filter(t=>PracticeCatalog.matches(t.url,target().id));
   const tab=matching.find(t=>t.active&&t.url.includes('PerfSaleProcess'))||matching.find(t=>t.url.includes('PerfSaleProcess'))||matching.find(t=>t.id===boundTab)||matching[0];
   if(!tab)throw Error('선택한 공연의 페이지를 먼저 열어주세요. 다른 공연은 읽지 않습니다.');boundTab=tab.id;
-  await chrome.scripting.executeScript({target:{tabId:boundTab,allFrames:true},files:['site-reader.js']});
+  await chrome.scripting.executeScript({target:{tabId:boundTab,allFrames:true},files:['practice-catalog.js','booking-entry.js','site-reader.js']});
   const result=await chrome.scripting.executeScript({target:{tabId:boundTab,allFrames:true},func:()=>globalThis.readTicketPage()});reports=result.map(r=>({...r.result,frameId:r.frameId}));
   const main=reports.find(r=>r.frameId===0)||reports[0];$('title').textContent=main.title||target().name;$('observed').textContent='읽은 시각: '+new Date(main.capturedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
   for(const [id,key] of [['date','dates'],['time','times']]){const values=[...new Set(reports.flatMap(r=>r[key]||[]))].sort();$(id).replaceChildren(new Option(values.length?'회차를 확인하고 선택하세요':'현재 화면에서 확인되지 않음',''));for(const value of values)$(id).append(new Option(value,value));}
@@ -27,7 +33,9 @@ $('read').onclick=async()=>{
 };
 $('start').onclick=async()=>{
  try{
-  if(!config||!boundTab)throw Error('검증된 공연별 연동 설정이 필요합니다.');const tab=await chrome.tabs.get(boundTab);if(!PracticeCatalog.matches(tab.url,target().id)||new URL(tab.url).pathname.includes('PerfSaleProcess'))throw Error('등록한 공연 상세 페이지에서만 시작할 수 있습니다. 팝업·프레임 연결은 추가 연동이 필요합니다.');
+  if(!config||!boundTab)throw Error('먼저 현재 공연 화면 정보를 읽으세요.');
+  if(config.entryOnly){await chrome.scripting.executeScript({target:{tabId:boundTab},files:['practice-catalog.js','booking-entry.js']});const result=await chrome.scripting.executeScript({target:{tabId:boundTab},func:id=>globalThis.TicketBookingEntry.click(id),args:[target().id]});$('start').disabled=true;$('status').textContent=result[0]?.result||'클릭 결과를 확인하세요.';return;}
+  const tab=await chrome.tabs.get(boundTab);if(!PracticeCatalog.matches(tab.url,target().id)||new URL(tab.url).pathname.includes('PerfSaleProcess'))throw Error('등록한 공연 상세 페이지에서만 시작할 수 있습니다. 팝업·프레임 연결은 추가 연동이 필요합니다.');
   const show=$('date').value+'T'+$('time').value;const open=new Date(Date.now()+9*3600000).toISOString().slice(0,16);
   const plan=TicketPlan.normalizePlan({id:'practice-'+target().id,name:target().name,url:tab.url,show,open,count:2,sections:[]});
   if(!confirm(`${target().name}\n${show} / ${plan.count}매\n실제 좌석을 임시 확보할 수 있습니다. 마지막 결제하기는 직접 누릅니다. 진행할까요?`))return;
