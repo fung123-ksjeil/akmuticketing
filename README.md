@@ -4,6 +4,14 @@
 
 ![공연 예매 도우미 화면](docs/preview.png)
 
+## GitHub Pages 게시
+
+게시 대상 주소: **https://fung123-ksjeil.github.io/akmuticketing/**
+
+정적 파일을 `gh-pages` 브랜치에 준비했습니다. 이 환경에서 GitHub Pages 설정 API와 게시 도메인 접근이 차단되어 활성화·공개 접속은 확인하지 못했습니다. 사이트가 열리지 않으면 저장소 **Settings → Pages → Build and deployment**에서 Source를 **Deploy from a branch**, Branch를 **gh-pages / (root)**로 선택하고 Save를 누르세요. GitHub의 Pages 배포가 끝나면 위 주소로 접속할 수 있습니다.
+
+Chrome 확장 설치는 웹사이트 게시와 별개입니다. 사이트에서 공연을 등록·내보내고 확장에 가져오세요.
+
 ## 가장 빨리 테스트하기
 
 1. GitHub의 **Code → Download ZIP**으로 다운로드하고 압축을 풉니다.
