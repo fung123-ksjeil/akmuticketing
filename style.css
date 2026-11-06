@@ -106,3 +106,6 @@ fieldset { border:0; padding:0; margin:16px 0; }legend { font-size:12px; margin-
 .preference-card .seat-note { margin-bottom:10px; }
 .preference-card button { padding-top:9px; padding-bottom:9px; }
 .preference-card .opening { margin-top:14px; padding-top:12px; }
+#payment-stage input { display:inline-block; width:auto; height:auto; margin-right:6px; }
+dialog { border:1px solid #d8dfd3; border-radius:12px; padding:28px; max-width:90vw; }
+dialog::backdrop { background:#0005; }

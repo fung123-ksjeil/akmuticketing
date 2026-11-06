@@ -58,19 +58,19 @@ globalThis.TicketRunner=(action,config)=>{
  }
  if(action==='arm'){
   if(!samePage())return '등록한 공연 페이지에서 시작 대기를 켜세요.';
-  if(!config.booking)return '예매 버튼을 먼저 지정하세요.';
+  if(!(config.useYes24Sequence?config.yes24Mapping?.booking:config.booking))return '예매 버튼을 먼저 지정하세요.';
   const opening=Date.parse(plan.open+'+09:00');if(Date.now()>opening+120000)return '시작 시각이 2분 이상 지났습니다. 지금 클릭 기능을 사용하세요.';
-  const steps=[{type:'click',selector:config.booking,label:'예매'}];
-  if(config.flow){for(const line of config.flow.split('\n').map(s=>s.trim()).filter(Boolean)){
+  const steps=config.useYes24Sequence?TicketYes24Flow.build(plan,config.yes24Mapping):[{type:'click',selector:config.booking,label:'예매'}];
+  if(!config.useYes24Sequence&&config.flow){for(const line of config.flow.split('\n').map(s=>s.trim()).filter(Boolean)){
    if(line==='SEATS')steps.push({type:'seats',label:'연속 좌석'});
    else if(line.startsWith('WAIT '))steps.push({type:'wait',selector:line.slice(5).trim(),label:'사용자 진행 대기'});
    else steps.push({type:'click',selector:line,label:'다음 단계'});
   }}
   if(steps.length>20)return '자동 단계는 최대 20개입니다.';
-  for(const step of steps)if(step.selector)document.querySelector(step.selector);
-  if(!config.preapproved&&!confirm(`${plan.name}\n${plan.show} / ${plan.count}매\n우선 구역 ${plan.sections.join(', ')}${config.adjacent?' → 배치상 인접 구역':''}\n시작 후 확인한 ${steps.length}개 단계만 자동 진행합니다. 사람 확인·결제는 직접 하세요. 페이지 이동 시 자동 진행은 해제됩니다. 준비한 회차와 버튼이 맞나요?`))return '취소했습니다.';
+  for(const step of steps)for(const key of ['selector','stage','arrive','leave','month','nextMonth','selected'])if(step[key])document.querySelector(step[key]);
+  if(!config.preapproved&&!confirm(`${plan.name}\n${plan.show} / ${plan.count}매\n우선 구역 ${plan.sections.join(', ')}${config.adjacent?' → 배치상 인접 구역':''}\n시작 후 확인한 ${steps.length}개 단계만 자동 진행합니다.${config.useYes24Sequence?' 네이버페이 선택·전체 동의·결제창 열기까지 자동 진행하고 최종 결제는 직접 합니다.':''} 사람 확인·결제는 직접 하세요. 페이지 이동 시 자동 진행은 해제됩니다. 준비한 회차와 버튼이 맞나요?`))return '취소했습니다.';
   globalThis.ticketAutomation?.stop();
-  let timer,index=0,stopped=false,lastClick=0,expires=opening+120000,pendingSeats=null;
+  let timer,index=0,stopped=false,lastClick=0,expires=opening+120000,pendingSeats=null,pendingTransition=null;
   const banner=document.createElement('div'),text=document.createElement('span'),stop=document.createElement('button');stop.textContent='자동 진행 중지';banner.append(text,stop);
   Object.assign(banner.style,{position:'fixed',bottom:'16px',left:'16px',right:'16px',padding:'16px',background:'#213e32',color:'white',zIndex:'2147483647',font:'14px sans-serif'});stop.style.marginLeft='14px';banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');document.documentElement.append(banner);
   function status(message){text.textContent='공연 예매 도우미 · '+message;}
@@ -85,12 +85,61 @@ globalThis.TicketRunner=(action,config)=>{
     const step=steps[index];if(!step){end('지정한 단계가 끝났습니다. 최종 결제·예매 내역을 직접 확인하세요.');return;}
     const gates=all(config.manualGate||'iframe[src*="recaptcha"],iframe[src*="hcaptcha"],input[autocomplete="cc-number"],input[autocomplete="cc-csc"],input[autocomplete="one-time-code"]');
     if(gates.length){status('사람 확인 또는 결제 화면입니다. 직접 진행하세요. 완료 후 다음 지정 요소가 나타나면 재개합니다.');timer=setTimeout(tick,500);return;}
+    if(pendingTransition){
+     if((!pendingTransition.leave||!all(pendingTransition.leave).length)&&(!pendingTransition.arrive||all(pendingTransition.arrive).length===1)){pendingTransition=null;index++;}
+     else if(now-pendingTransition.time>15000)throw Error('다음 화면 전환을 확인하지 못했습니다. 같은 버튼을 반복 클릭하지 않습니다.');
+     timer=setTimeout(tick,200);return;
+    }
     if(pendingSeats){
      if(pendingSeats.elements.every(e=>e.isConnected&&e.getAttribute(config.selectedAttr||'data-selected')===(config.selectedValue||'true'))){pendingSeats=null;index++;}
      else if(now-pendingSeats.time>3000)throw Error('좌석 선택 완료를 확인할 수 없습니다. 실제 선택 결과와 선택 상태 속성을 확인하세요.');
      timer=setTimeout(tick,200);return;
     }
     if(now-lastClick<700){timer=setTimeout(tick,200);return;}
+    if(step.stage&&all(step.stage).length!==1){status(step.label+' · 해당 화면을 기다립니다.');timer=setTimeout(tick,200);return;}
+    if(step.type==='calendar'){
+     const months=all(step.month);if(months.length!==1)throw Error('달력의 연월을 하나로 확인할 수 없습니다.');
+     const shown=TicketYes24Flow.monthIndex(months[0].textContent),target=TicketYes24Flow.monthIndex(step.date);
+     if(shown===null||target===null||shown>target||target-shown>12)throw Error('달력 연월을 확인하세요. 잘못된 달의 2일을 클릭하지 않습니다.');
+     if(shown<target){
+      if(step.monthClicked){if(step.lastMonth===shown){if(now-step.monthClicked>5000)throw Error('달력 월 전환을 확인하지 못했습니다.');timer=setTimeout(tick,200);return;}step.monthClicked=null;}
+      const next=all(step.nextMonth);if(next.length!==1)throw Error('다음 달 버튼을 확인할 수 없습니다.');step.lastMonth=shown;step.monthClicked=now;next[0].click();lastClick=now;
+     }else{
+      const dates=all(step.selector);if(dates.length!==1)throw Error('목표 날짜 버튼이 하나가 아닙니다.');
+      if(!step.dateClicked){step.dateClicked=now;dates[0].click();lastClick=now;}
+      const selected=all(step.selected);if(selected.length===1&&TicketYes24Flow.sameDate(selected[0].value||selected[0].textContent,step.date))index++;
+      else if(now-step.dateClicked>5000)throw Error('선택 날짜가 2027년 1월 2일인지 확인되지 않았습니다.');
+     }
+     timer=setTimeout(tick,200);return;
+    }
+    if(step.type==='session'){
+     const sessions=all(step.selector);if(sessions.length!==1)throw Error('회차 선택 요소가 하나가 아닙니다.');const el=sessions[0];
+     if(el.tagName==='SELECT'){
+      const options=[...el.options].filter(o=>!o.disabled&&TicketYes24Flow.sameTime(o.textContent,step.time));if(options.length!==1)throw Error('17시 회차를 하나로 확인할 수 없습니다.');
+      if(el.value!==options[0].value){el.value=options[0].value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}
+      if(el.value!==options[0].value)throw Error('17시 회차 선택을 확인하지 못했습니다.');
+     }else{
+      if(!TicketYes24Flow.sameTime(el.textContent||el.value,step.time))throw Error('17시 회차 버튼인지 확인되지 않았습니다.');
+      if(!step.clicked){step.clicked=now;el.click();}
+      const selected=step.selected?all(step.selected):[];
+      const verified=(selected.length===1&&TicketYes24Flow.sameTime(selected[0].textContent||selected[0].value,step.time))||el.getAttribute('aria-selected')==='true'||el.getAttribute('aria-pressed')==='true'||el.checked===true;
+      if(!verified){if(now-step.clicked>5000)throw Error('17시 회차 선택 상태를 확인하지 못했습니다. selectedSession 어댑터가 필요합니다.');timer=setTimeout(tick,200);return;}
+     }
+     index++;lastClick=now;timer=setTimeout(tick,200);return;
+    }
+    if(step.type==='check'){
+     const els=all(step.selector);if(els.length!==1||els[0].tagName!=='INPUT'||els[0].type!==step.kind)throw Error(step.label+' 요소를 확인할 수 없습니다.');
+     const el=els[0];if(!el.checked){if(step.clicked)throw Error(step.label+' 상태가 적용되지 않았습니다.');step.clicked=true;el.click();}
+     if(el.checked){index++;lastClick=now;}timer=setTimeout(tick,200);return;
+    }
+    if(step.type==='open-payment'){
+     const allowed=location.hostname==='ticket.yes24.com'||(['localhost','127.0.0.1'].includes(location.hostname)&&location.pathname.endsWith('/demo.html'));
+     if(!allowed)throw Error('예스24에서 네이버페이 창을 여는 동작만 허용합니다.');
+     const pay=all(step.naverPay),agree=all(step.agreeAll),buttons=all(step.selector);
+     if(pay.length!==1||!pay[0].checked||agree.length!==1||!agree[0].checked||buttons.length!==1)throw Error('네이버페이·전체 동의·결제창 열기 버튼을 확인하세요.');
+     if(!/네이버|naver|n[ -]?pay/i.test(pay[0].getAttribute('aria-label')||pay[0].labels?.[0]?.textContent||''))throw Error('네이버페이 수단인지 확인되지 않았습니다.');
+     buttons[0].click();end('네이버페이 창에서 금액과 동의 내용을 확인하고, 동의하고 결제하기는 직접 누르세요.');return;
+    }
     if(step.type==='wait'){
      if(all(step.selector).length){status('사용자 진행 대기 · 해당 확인/결제 화면을 직접 완료하세요.');timer=setTimeout(tick,500);return;}
      index++;status('사용자 단계 종료 감지 · 다음 지정 버튼을 기다립니다.');timer=setTimeout(tick,300);return;
@@ -105,7 +154,7 @@ globalThis.TicketRunner=(action,config)=>{
     }else{
      const buttons=all(step.selector);if(buttons.length>1)throw Error('지정한 버튼이 여러 개입니다. 직접 확인하세요.');
      if(buttons.length===1){if(finalPayment(buttons[0])){step.manualSeen=true;status('최종 결제·구매 버튼입니다. 직접 진행하세요. 완료하여 이 버튼이 사라지면 다음 단계로 이어갑니다.');timer=setTimeout(tick,500);return;}
-      buttons[0].click();index++;lastClick=now;if(index===1)expires=now+30*60000;status(`${index}/${steps.length} 단계 클릭 완료`);
+      buttons[0].click();if(step.leave||step.arrive)pendingTransition={leave:step.leave,arrive:step.arrive,time:now};else index++;lastClick=now;if(index===1)expires=now+30*60000;status(`${step.label||index+'/'+steps.length} 클릭 완료`);
      }else if(step.manualSeen){index++;status('사용자가 결제 단계를 완료했습니다. 다음 지정 단계를 기다립니다.');}else status(`${index+1}/${steps.length} 단계의 지정 버튼을 기다립니다. 새 창·페이지 이동에서는 확장을 다시 실행하세요.`);
     }
     timer=setTimeout(tick,200);
