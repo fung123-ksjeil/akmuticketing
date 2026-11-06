@@ -1,0 +1,15 @@
+{
+  "name": "concert-booking-helper",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test --test-isolation=none",
+    "test:browser": "node scripts/browser-check.mjs",
+    "test:web": "node scripts/browser-check.mjs --web-only"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

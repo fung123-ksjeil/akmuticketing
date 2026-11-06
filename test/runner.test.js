@@ -1,0 +1,20 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import '../extension/plan.js';
+import '../extension/planner.js';
+import '../extension/runner.js';
+test('후보 확인과 클릭 흐름, 재실행 방지 및 메타데이터 검증',()=>{
+ const elements=Array.from({length:4},(_,i)=>({dataset:{section:'104',row:'A',number:String(i+1),available:'true',block:'left'},style:{outline:''},isConnected:true,getClientRects:()=>[{}],getAttribute(name){if(name==='aria-disabled')return null;const key=name.replace(/^data-/, '').replace(/-([a-z])/g,(_,c)=>c.toUpperCase());return this.dataset[key]??null;},click(){this.clicked=(this.clicked||0)+1;}}));
+ globalThis.document={querySelectorAll:()=>elements};globalThis.confirm=()=>true;
+ const config={plan:{url:'https://example.com/concert',open:'2026-11-10T20:00',count:'2',show:'2027-01-02T17:00',sections:['104']},seat:'.seat'};
+ assert.match(TicketRunner('preview',config),/2, 3번/);
+ assert.equal(elements[1].clicked,undefined);
+ assert.match(TicketRunner('select',config),/클릭했습니다/);
+ assert.equal(elements[1].clicked,1);assert.equal(elements[2].clicked,1);
+ assert.match(TicketRunner('select',config),/다시 확인/);
+ TicketRunner('preview',config);elements[1].dataset.available='false';
+ assert.match(TicketRunner('select',config),/상태가 바뀌/);assert.equal(elements[1].clicked,1);
+ delete elements[0].dataset.block;
+ assert.throws(()=>TicketRunner('preview',config),/메타데이터가 부족/);
+ delete globalThis.document;delete globalThis.confirm;
+});
