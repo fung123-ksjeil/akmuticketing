@@ -20,7 +20,7 @@ try{
  if(process.env.SCREENSHOT_PATH)await page.screenshot({path:process.env.SCREENSHOT_PATH,fullPage:true});
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'확장에 전달할 설정 받기 ↓'}).click();const file=await download;const stream=await file.createReadStream();let body='';for await(const chunk of stream)body+=chunk;assert.deepEqual(JSON.parse(body),{section:'106',position:'front',count:4});
  console.log('PASS AKMU-only dashboard: interactive map, front/middle/back, 1–4 tickets, persistence, settings export');
- await page.goto(base+'/demo.html');page.on('dialog',dialog=>dialog.accept());
+ await page.goto(base+'/scripts/fixtures/booking.html');page.on('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'자동 연습 시작'}).click();
  await page.waitForSelector('#human-check:visible');await page.waitForTimeout(800);assert.equal(await page.locator('.demo-seat.selected').count(),0);
  await page.getByRole('button',{name:'내가 직접 확인 완료'}).click();
@@ -42,10 +42,23 @@ try{
  await page.reload();await page.evaluate(()=>{window.nextClicks=0;document.getElementById('confirm-next').onclick=()=>window.nextClicks++;});
  await page.getByRole('button',{name:'자동 연습 시작'}).click();await page.waitForSelector('#human-check:visible');await page.getByRole('button',{name:'내가 직접 확인 완료'}).click();await page.waitForFunction(()=>window.nextClicks===1);await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>window.nextClicks),1);assert.equal(await page.locator('#discount-stage').isVisible(),false);
  console.log('PASS unchanged stage does not cause repeated next clicks');
+ // Simulated opening time: no early/hidden/disabled clicks, one click on activation.
+ const detector=await context.newPage();await detector.goto(base+'/scripts/fixtures/booking.html');detector.on('dialog',dialog=>dialog.accept());
+ await detector.clock.install({time:new Date('2026-11-10T10:59:59.500Z')});
+ await detector.evaluate(()=>{window.openingClicks=0;const button=document.getElementById('booking');button.disabled=true;button.onclick=()=>window.openingClicks++;TicketRunner('arm',{plan:{url:location.href,show:'2027-01-02T17:00',open:'2026-11-10T20:00',count:2,sections:['104']},booking:'#booking'});});
+ await detector.clock.runFor(400);assert.equal(await detector.evaluate(()=>window.openingClicks),0);
+ await detector.clock.runFor(300);assert.equal(await detector.evaluate(()=>window.openingClicks),0);
+ await detector.evaluate(()=>{const button=document.getElementById('booking');button.disabled=false;button.style.visibility='hidden';});
+ await detector.clock.runFor(200);assert.equal(await detector.evaluate(()=>window.openingClicks),0);
+ await detector.evaluate(()=>{const button=document.getElementById('booking');button.style.visibility='visible';button.style.pointerEvents='none';});
+ await detector.clock.runFor(200);assert.equal(await detector.evaluate(()=>window.openingClicks),0);
+ await detector.evaluate(()=>document.getElementById('booking').style.pointerEvents='auto');await detector.clock.runFor(120);assert.equal(await detector.evaluate(()=>window.openingClicks),1);
+ await detector.clock.runFor(1000);assert.equal(await detector.evaluate(()=>window.openingClicks),1);await detector.close();
+ console.log('PASS 20:00 gate: no early, hidden or disabled clicks; one activation click, no retries');
  // Extension popup must load as a real extension, not just as a web page.
  if(!process.argv.includes('--web-only')){
  let [worker]=context.serviceWorkers();if(!worker)worker=await context.waitForEvent('serviceworker');
- const extensionId=new URL(worker.url()).host;const popup=await context.newPage();await popup.goto(`chrome-extension://${extensionId}/popup.html`);await popup.waitForSelector('#plans');assert.equal(await popup.title(),'악뮤 예매 도우미');
+ const extensionId=new URL(worker.url()).host;const popup=await context.newPage();await popup.goto(`chrome-extension://${extensionId}/popup.html`);await popup.waitForSelector('#count');assert.equal(await popup.title(),'악뮤 예매 도우미');
  await worker.evaluate(async()=>{const plan=AkmuPreset.plan();await chrome.storage.local.set({akmuCount:2,profiles:{[plan.url]:{booking:'#booking'}}});});
  const reminders=await popup.evaluate(()=>chrome.runtime.sendMessage({type:'reminders',id:'akmu-kintex'}));assert.equal(reminders.count,4);
  const prepare=await popup.evaluate(()=>chrome.runtime.sendMessage({type:'prepare',id:'akmu-kintex'}));assert.match(prepare.message,/10분 전/);

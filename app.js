@@ -11,3 +11,5 @@ document.getElementById('export').onclick=()=>{try{const p=save(),a=document.cre
 document.getElementById('open-page').onclick=()=>window.open(AkmuPreset.plan().url,'_blank','noopener,noreferrer');
 function countdown(){document.getElementById('countdown').textContent=TicketPlan.remaining(AkmuPreset.plan().open);}
 show();countdown();setInterval(countdown,1000);
+
+const guide=document.getElementById('quick-guide');document.getElementById('help').onclick=()=>guide.showModal();document.getElementById('close-help').onclick=()=>guide.close();

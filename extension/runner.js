@@ -1,6 +1,6 @@
 globalThis.TicketRunner=(action,config)=>{
  const plan={...TicketPlan.normalizePlan(config.plan),position:config.plan.position};
- const visible=e=>!!e.getClientRects().length&&!e.disabled&&e.getAttribute('aria-disabled')!=='true';
+ const visible=e=>!!e.getClientRects().length&&!e.disabled&&e.getAttribute('aria-disabled')!=='true'&&!e.matches?.(':disabled')&&!e.closest?.('[inert]')&&e.checkVisibility?.({checkOpacity:true,checkVisibilityCSS:true})!==false&&(typeof getComputedStyle!=='function'||getComputedStyle(e).pointerEvents!=='none');
  const all=selector=>selector?[...document.querySelectorAll(selector)].filter(visible):[];
  const samePage=()=>location.href.split('#')[0]===new URL(plan.url).href.split('#')[0];
  const finalPayment=e=>/결제\s*(하기|완료|확정|승인)|구매\s*(하기|확정)|pay\s*now|place\s*order|confirm\s*(purchase|payment)/i.test((e.textContent||'')+' '+(e.value||''));
@@ -140,7 +140,7 @@ globalThis.TicketRunner=(action,config)=>{
      chosenBank={value:option.value,label:option.textContent};status('입금은행 '+chosenBank.label+' 선택 확인');index++;lastClick=now;timer=setTimeout(tick,200);return;
     }
     if(step.type==='review-bank-booking'){
-     const allowed=location.hostname==='ticket.yes24.com'||(['localhost','127.0.0.1'].includes(location.hostname)&&location.pathname.endsWith('/demo.html'));
+     const allowed=location.hostname==='ticket.yes24.com'||(['localhost','127.0.0.1'].includes(location.hostname)&&location.pathname==='/scripts/fixtures/booking.html');
      if(!allowed)throw Error('예스24 무통장 예매 준비만 허용합니다.');
      const method=all(step.bankTransfer),banks=all(step.bankSelect),agree=all(step.agreeAll),buttons=all(step.selector);
      if(method.length!==1||!method[0].checked||banks.length!==1||!chosenBank||banks[0].value!==chosenBank.value||agree.length!==1||!agree[0].checked||buttons.length!==1)throw Error('무통장입금·입금은행·전체 동의·결제하기 버튼을 확인하세요.');
@@ -165,7 +165,7 @@ globalThis.TicketRunner=(action,config)=>{
       buttons[0].click();if(step.leave||step.arrive)pendingTransition={leave:step.leave,arrive:step.arrive,time:now};else index++;lastClick=now;if(index===1)expires=now+30*60000;status(`${step.label||index+'/'+steps.length} 클릭 완료`);
      }else if(step.manualSeen){index++;status('사용자가 결제 단계를 완료했습니다. 다음 지정 단계를 기다립니다.');}else status(`${index+1}/${steps.length} 단계의 지정 버튼을 기다립니다. 새 창·페이지 이동에서는 확장을 다시 실행하세요.`);
     }
-    timer=setTimeout(tick,200);
+    timer=setTimeout(tick,index===0?100:200);
    }catch(e){end('중단 · '+e.message);}
   }
   tick();return '시작 대기를 켰습니다. 현재 페이지의 하단 안내에서 상태를 확인하세요.';
