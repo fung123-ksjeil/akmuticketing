@@ -56,7 +56,7 @@ for(const action of ['prepare','login-done','cancel-prepare'])$(action).onclick=
    if(!await chrome.permissions.request({origins:[origin]}))throw Error('예스24 접근 권한이 필요합니다.');
   }
   const config=await saveProfile();
-  if(action!=='cancel-prepare'&&!confirm(`${plan().name} / ${plan().show} / ${plan().count}매\n로그인 완료 후 악뮤 공연 페이지로 복귀하여, 저장한 예매 버튼과 자동 진행 순서대로 시작을 기다립니다. ${config.useYes24Sequence?"무통장입금·국민은행 우선(없으면 선택 가능한 첫 은행)·전체 동의 후 결제하기로 예매를 신청합니다. 실제 입금은 직접 합니다.\n":""}회차·버튼 설정을 확인했나요?`))return;
+  if(action!=='cancel-prepare'&&!confirm(`${plan().name} / ${plan().show} / ${plan().count}매\n로그인 완료 후 악뮤 공연 페이지로 복귀하여, 저장한 예매 버튼과 자동 진행 순서대로 시작을 기다립니다. ${config.useYes24Sequence?"무통장입금·국민은행 우선(없으면 선택 가능한 첫 은행)·전체 동의까지만 준비합니다. 마지막 결제하기와 실제 입금은 직접 합니다.\n":""}회차·버튼 설정을 확인했나요?`))return;
   const result=await chrome.runtime.sendMessage({type:action,id:activeId});
   if(result.error)throw Error(result.error);$('status').textContent=result.message;
  }catch(e){$('status').textContent=e.message;}

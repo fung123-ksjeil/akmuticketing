@@ -24,21 +24,20 @@ try{
  await page.getByRole('button',{name:'자동 연습 시작'}).click();
  await page.waitForSelector('#human-check:visible');await page.waitForTimeout(800);assert.equal(await page.locator('.demo-seat.selected').count(),0);
  await page.getByRole('button',{name:'내가 직접 확인 완료'}).click();
- await page.waitForSelector('#reservation-complete:visible',{timeout:25000});
+ await page.waitForFunction(()=>[...document.querySelectorAll('[role=status] span')].some(e=>e.textContent.includes('마지막 결제하기는 직접 누르세요.')),{},{timeout:25000});
  assert.equal(await page.locator('#calendar-month').textContent(),'2027. 01');assert.equal(await page.locator('#selected-date').textContent(),'2027. 01. 02.');assert.equal(await page.locator('#session').inputValue(),'17');
  assert.equal(await page.locator('.demo-seat.selected').count(),4);assert.deepEqual(await page.locator('.demo-seat.selected').evaluateAll(es=>es.map(e=>e.dataset.section)),['108','108','108','108']);
  const log=await page.locator('#log').textContent();for(const n of [1,2,3])assert.equal(log.split('다음단계 '+n+' →').length-1,1);
  assert.equal(await page.locator('#bank-transfer').isChecked(),true);assert.equal(await page.locator('#agree-all').isChecked(),true);assert.equal(await page.locator('#bank-select').inputValue(),'004');
+ await page.waitForTimeout(1000);assert.equal(await page.locator('#reservation-complete').isVisible(),false);assert.equal(await page.locator('#done').textContent(),'');
+ await page.getByRole('button',{name:'결제하기',exact:true}).click();await page.waitForSelector('#reservation-complete:visible');
  assert.match(await page.locator('#done').textContent(),/실제 예매 신청·결제·입금은 발생하지/);
- console.log('PASS supplied sequence through bank transfer: KB first, agreement, submit once and confirm completion');
- await page.reload();await page.evaluate(()=>document.querySelector('#bank-select option[value="004"]').remove());
- await page.getByRole('button',{name:'자동 연습 시작'}).click();await page.waitForSelector('#human-check:visible');await page.getByRole('button',{name:'내가 직접 확인 완료'}).click();await page.waitForSelector('#reservation-complete:visible',{timeout:25000});
- assert.equal(await page.locator('#bank-select').inputValue(),'003');assert.match(await page.locator('#bank-result').textContent(),/기업은행/);
- console.log('PASS missing KB selects first valid bank, skipping placeholder');
- // A pending submission must never be reissued even if the completion page does not arrive.
- await page.reload();await page.evaluate(()=>{window.submitClicks=0;document.getElementById('submit-booking').onclick=()=>window.submitClicks++;});
- await page.getByRole('button',{name:'자동 연습 시작'}).click();await page.waitForSelector('#human-check:visible');await page.getByRole('button',{name:'내가 직접 확인 완료'}).click();await page.waitForFunction(()=>window.submitClicks===1,{},{timeout:25000});await page.waitForTimeout(1200);assert.equal(await page.evaluate(()=>window.submitClicks),1);assert.equal(await page.locator('#done').textContent(),'');
- console.log('PASS unconfirmed booking submission is never repeated');
+ console.log('PASS KB-first preparation stops before final payment; completion requires user click');
+ await page.reload();await page.evaluate(()=>{document.querySelector('#bank-select option[value="004"]').remove();window.submitClicks=0;document.getElementById('submit-booking').addEventListener('click',()=>window.submitClicks++);});
+ await page.getByRole('button',{name:'자동 연습 시작'}).click();await page.waitForSelector('#human-check:visible');await page.getByRole('button',{name:'내가 직접 확인 완료'}).click();await page.waitForFunction(()=>[...document.querySelectorAll('[role=status] span')].some(e=>e.textContent.includes('마지막 결제하기는 직접 누르세요.')),{},{timeout:25000});
+ assert.equal(await page.locator('#bank-select').inputValue(),'003');assert.equal(await page.evaluate(()=>window.submitClicks),0);assert.equal(await page.locator('#reservation-complete').isVisible(),false);
+ await page.getByRole('button',{name:'결제하기',exact:true}).click();assert.equal(await page.evaluate(()=>window.submitClicks),1);assert.match(await page.locator('#bank-result').textContent(),/기업은행/);
+ console.log('PASS missing KB selects fallback; final payment is never auto-clicked');
  // If a next button fails to change the stage, it must never be clicked three times.
  await page.reload();await page.evaluate(()=>{window.nextClicks=0;document.getElementById('confirm-next').onclick=()=>window.nextClicks++;});
  await page.getByRole('button',{name:'자동 연습 시작'}).click();await page.waitForSelector('#human-check:visible');await page.getByRole('button',{name:'내가 직접 확인 완료'}).click();await page.waitForFunction(()=>window.nextClicks===1);await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>window.nextClicks),1);assert.equal(await page.locator('#discount-stage').isVisible(),false);

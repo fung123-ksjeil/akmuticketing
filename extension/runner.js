@@ -68,9 +68,9 @@ globalThis.TicketRunner=(action,config)=>{
   }}
   if(steps.length>20)return '자동 단계는 최대 20개입니다.';
   for(const step of steps)for(const key of ['selector','stage','arrive','leave','month','nextMonth','selected'])if(step[key])document.querySelector(step[key]);
-  if(!config.preapproved&&!confirm(`${plan.name}\n${plan.show} / ${plan.count}매\n우선 구역 ${plan.sections.join(', ')}${config.adjacent?' → 배치상 인접 구역':''}\n시작 후 확인한 ${steps.length}개 단계만 자동 진행합니다.${config.useYes24Sequence?' 무통장입금·국민은행 우선 선택(없으면 선택 가능한 첫 은행)·전체 동의 후 결제하기를 한 번 눌러 예매를 신청합니다. 실제 입금은 직접 합니다.':''} 사람 확인·결제는 직접 하세요. 페이지 이동 시 자동 진행은 해제됩니다. 준비한 회차와 버튼이 맞나요?`))return '취소했습니다.';
+  if(!config.preapproved&&!confirm(`${plan.name}\n${plan.show} / ${plan.count}매\n우선 구역 ${plan.sections.join(', ')}${config.adjacent?' → 배치상 인접 구역':''}\n시작 후 확인한 ${steps.length}개 단계만 자동 진행합니다.${config.useYes24Sequence?' 무통장입금·국민은행 우선 선택(없으면 선택 가능한 첫 은행)·전체 동의까지만 준비합니다. 마지막 결제하기와 실제 입금은 직접 합니다.':''} 사람 확인·결제는 직접 하세요. 페이지 이동 시 자동 진행은 해제됩니다. 준비한 회차와 버튼이 맞나요?`))return '취소했습니다.';
   globalThis.ticketAutomation?.stop();
-  let timer,index=0,stopped=false,lastClick=0,expires=opening+120000,pendingSeats=null,pendingTransition=null,chosenBank=null,pendingBankBooking=null;
+  let timer,index=0,stopped=false,lastClick=0,expires=opening+120000,pendingSeats=null,pendingTransition=null,chosenBank=null;
   const banner=document.createElement('div'),text=document.createElement('span'),stop=document.createElement('button');stop.textContent='자동 진행 중지';banner.append(text,stop);
   Object.assign(banner.style,{position:'fixed',bottom:'16px',left:'16px',right:'16px',padding:'16px',background:'#213e32',color:'white',zIndex:'2147483647',font:'14px sans-serif'});stop.style.marginLeft='14px';banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');document.documentElement.append(banner);
   function status(message){text.textContent='공연 예매 도우미 · '+message;}
@@ -82,11 +82,6 @@ globalThis.TicketRunner=(action,config)=>{
     const now=Date.now();if(now<opening){status('시작 대기 · '+TicketPlan.remaining(plan.open));timer=setTimeout(tick,Math.min(1000,opening-now));return;}
     if(index===0&&now>expires){end('예매 버튼 활성화 대기 2분을 초과했습니다. 직접 확인하세요.');return;}
     if(index>0&&now>expires){end('자동 단계 대기 30분을 초과했습니다.');return;}
-    if(pendingBankBooking){
-     if(all(pendingBankBooking.complete).length===1){end('무통장 예매 완료 화면이 표시됐습니다. 예매내역에서 입금은행·금액·입금기한을 직접 확인하고 입금하세요.');return;}
-     if(now-pendingBankBooking.time>15000){end('결제하기를 한 번 눌렀지만 완료를 확인하지 못했습니다. 다시 누르지 말고 예매내역을 직접 확인하세요.');return;}
-     status('무통장 예매 신청 응답을 기다립니다. 결제하기는 다시 누르지 않습니다.');timer=setTimeout(tick,200);return;
-    }
     const step=steps[index];if(!step){end('지정한 단계가 끝났습니다. 최종 결제·예매 내역을 직접 확인하세요.');return;}
     const gates=all(config.manualGate||'iframe[src*="recaptcha"],iframe[src*="hcaptcha"],input[autocomplete="cc-number"],input[autocomplete="cc-csc"],input[autocomplete="one-time-code"]');
     if(gates.length){status('사람 확인 또는 결제 화면입니다. 직접 진행하세요. 완료 후 다음 지정 요소가 나타나면 재개합니다.');timer=setTimeout(tick,500);return;}
@@ -144,15 +139,14 @@ globalThis.TicketRunner=(action,config)=>{
      if(el.value!==step.chosen){if(now-step.changed>3000)throw Error('입금은행 선택 결과가 적용되지 않았습니다.');timer=setTimeout(tick,200);return;}
      chosenBank={value:option.value,label:option.textContent};status('입금은행 '+chosenBank.label+' 선택 확인');index++;lastClick=now;timer=setTimeout(tick,200);return;
     }
-    if(step.type==='submit-bank-booking'){
+    if(step.type==='review-bank-booking'){
      const allowed=location.hostname==='ticket.yes24.com'||(['localhost','127.0.0.1'].includes(location.hostname)&&location.pathname.endsWith('/demo.html'));
-     if(!allowed)throw Error('예스24 무통장 예매 신청만 허용합니다.');
+     if(!allowed)throw Error('예스24 무통장 예매 준비만 허용합니다.');
      const method=all(step.bankTransfer),banks=all(step.bankSelect),agree=all(step.agreeAll),buttons=all(step.selector);
      if(method.length!==1||!method[0].checked||banks.length!==1||!chosenBank||banks[0].value!==chosenBank.value||agree.length!==1||!agree[0].checked||buttons.length!==1)throw Error('무통장입금·입금은행·전체 동의·결제하기 버튼을 확인하세요.');
      if(!/무통장|계좌입금|bank\s*transfer/i.test(method[0].getAttribute('aria-label')||method[0].labels?.[0]?.textContent||''))throw Error('무통장입금 수단인지 확인되지 않았습니다.');
      const valid=TicketYes24Flow.chooseBank(banks[0].options);if(!valid||valid.value!==chosenBank.value)throw Error('입금은행 목록이 바뀌었습니다. 예매 신청 전에 다시 확인하세요.');
-     if(all(step.complete).length)throw Error('이미 완료 화면이 표시돼 있습니다. 중복 신청하지 않습니다.');
-     pendingBankBooking={complete:step.complete,time:now};buttons[0].click();status('무통장 예매 신청을 한 번 요청했습니다. 완료 확인 중');timer=setTimeout(tick,200);return;
+     end('무통장입금 · '+chosenBank.label+' · 전체 동의 준비 완료. 금액·내용을 확인하고 마지막 결제하기는 직접 누르세요.');return;
     }
     if(step.type==='wait'){
      if(all(step.selector).length){status('사용자 진행 대기 · 해당 확인/결제 화면을 직접 완료하세요.');timer=setTimeout(tick,500);return;}

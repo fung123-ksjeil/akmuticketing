@@ -1,5 +1,5 @@
 (function(root){
- const required=['booking','calendarStage','calendarMonth','calendarNext','calendarDay','selectedDate','session','seatEntry','seatStage','seatDone','seatConfirmationStage','seatConfirmationNext','discountStage','discountNext','deliveryStage','deliveryNext','paymentStage','bankTransfer','bankSelect','agreeAll','submitBooking','reservationComplete'];
+ const required=['booking','calendarStage','calendarMonth','calendarNext','calendarDay','selectedDate','session','seatEntry','seatStage','seatDone','seatConfirmationStage','seatConfirmationNext','discountStage','discountNext','deliveryStage','deliveryNext','paymentStage','bankTransfer','bankSelect','agreeAll','submitBooking'];
  function build(plan,map){
   for(const key of required)if(typeof map?.[key]!=='string'||!map[key].trim())throw Error('예스24 단계 설정 필요: '+key);
   const targetDate=plan.show.slice(0,10),targetTime=plan.show.slice(11,16);
@@ -16,7 +16,7 @@
    {type:'check',stage:map.paymentStage,selector:map.bankTransfer,kind:'radio',label:'무통장입금 선택'},
    {type:'bank',stage:map.paymentStage,selector:map.bankSelect,label:'국민은행 우선 선택'},
    {type:'check',stage:map.paymentStage,selector:map.agreeAll,kind:'checkbox',label:'모두 동의합니다 체크'},
-   {type:'submit-bank-booking',stage:map.paymentStage,selector:map.submitBooking,bankTransfer:map.bankTransfer,bankSelect:map.bankSelect,agreeAll:map.agreeAll,complete:map.reservationComplete,label:'무통장 예매 신청'}
+   {type:'review-bank-booking',stage:map.paymentStage,selector:map.submitBooking,bankTransfer:map.bankTransfer,bankSelect:map.bankSelect,agreeAll:map.agreeAll,label:'최종 결제 사용자 확인'}
   ];
  }
  function monthIndex(text){const match=String(text).match(/(20\d{2})\s*[.년/\-]\s*(\d{1,2})/);if(!match||Number(match[2])<1||Number(match[2])>12)return null;return Number(match[1])*12+Number(match[2])-1;}
