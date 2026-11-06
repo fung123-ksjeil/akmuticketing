@@ -30,7 +30,7 @@ async function prepareTab(tabId){
   }
   if(tab.url.split('#')[0]!==plan.url.split('#')[0]){await chrome.tabs.update(tabId,{url:plan.url});return;}
   await forget(tabId);
-  await chrome.scripting.executeScript({target:{tabId},files:['plan.js','planner.js','runner.js']});
+  await chrome.scripting.executeScript({target:{tabId},files:['plan.js','planner.js','yes24-sequence.js','runner.js']});
   const result=await chrome.scripting.executeScript({target:{tabId},func:config=>globalThis.TicketRunner('arm',config),args:[{...profile,plan,preapproved:true}]});
   await chrome.storage.local.set({lastPreparation:{id:plan.id,message:result[0]?.result||'시작 처리'}});
  }catch(e){await chrome.storage.local.set({lastPreparation:{id:task.id,message:e.message}});}

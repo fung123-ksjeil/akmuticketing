@@ -20,17 +20,22 @@ try{
  if(process.env.SCREENSHOT_PATH)await page.screenshot({path:process.env.SCREENSHOT_PATH,fullPage:true});
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'확장에 전달할 설정 받기 ↓'}).click();const file=await download;const stream=await file.createReadStream();let body='';for await(const chunk of stream)body+=chunk;assert.deepEqual(JSON.parse(body),{section:'106',position:'front',count:4});
  console.log('PASS AKMU-only dashboard: interactive map, front/middle/back, 1–4 tickets, persistence, settings export');
- await page.goto(base+'/demo.html');
- await page.addScriptTag({url:base+'/extension/plan.js'});await page.addScriptTag({url:base+'/extension/planner.js'});await page.addScriptTag({url:base+'/extension/runner.js'});
- page.on('dialog',dialog=>dialog.accept());
- const config={plan:{id:'test',name:'연습 공연',url:base+'/demo.html',show:new Date(Date.now()+33*3600000).toISOString().slice(0,16),open:new Date(Date.now()+9*3600000).toISOString().slice(0,16),count:2,sections:['104','105','106','103','107']},booking:'#booking',seat:'.demo-seat',adjacent:true,flow:'WAIT #human-check\nSEATS\n#seat-next\nWAIT #payment\n#receipt',manualGate:'#human-check, #payment'};
- const result=await page.evaluate(c=>TicketRunner('arm',c),config);assert.match(result,/시작 대기/);
- await page.waitForSelector('#human-check:visible');await page.waitForTimeout(1000);assert.equal(await page.locator('.demo-seat.selected').count(),0);
- await page.getByRole('button',{name:'내가 직접 확인 완료'}).click();await page.waitForSelector('#payment:visible');
- assert.equal(await page.locator('.demo-seat.selected').count(),2);assert.deepEqual(await page.locator('.demo-seat.selected').evaluateAll(es=>es.map(e=>e.dataset.section)),['108','108']);
- await page.waitForTimeout(1000);assert.equal(await page.locator('#receipt').isVisible(),false);
- await page.getByRole('button',{name:'연습 결제 완료'}).click();await page.waitForFunction(()=>document.querySelector('#done').textContent.includes('연습 완료'));
- console.log('PASS automation: booking → human pause → adjacent contiguous seats → payment pause → resume → receipt');
+ await page.goto(base+'/demo.html');page.on('dialog',dialog=>dialog.accept());
+ await page.getByRole('button',{name:'자동 연습 시작'}).click();
+ await page.waitForSelector('#human-check:visible');await page.waitForTimeout(800);assert.equal(await page.locator('.demo-seat.selected').count(),0);
+ await page.getByRole('button',{name:'내가 직접 확인 완료'}).click();
+ await page.waitForSelector('#naver-dialog[open]',{timeout:20000});
+ assert.equal(await page.locator('#calendar-month').textContent(),'2027. 01');assert.equal(await page.locator('#selected-date').textContent(),'2027. 01. 02.');assert.equal(await page.locator('#session').inputValue(),'17');
+ assert.equal(await page.locator('.demo-seat.selected').count(),4);assert.deepEqual(await page.locator('.demo-seat.selected').evaluateAll(es=>es.map(e=>e.dataset.section)),['108','108','108','108']);
+ const log=await page.locator('#log').textContent();for(const n of [1,2,3])assert.equal(log.split('다음단계 '+n+' →').length-1,1);
+ assert.equal(await page.locator('#naver-pay').isChecked(),true);assert.equal(await page.locator('#agree-all').isChecked(),true);
+ await page.waitForTimeout(800);assert.equal(await page.locator('#done').textContent(),'');
+ await page.getByRole('button',{name:'동의하고 결제하기',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#done').textContent.includes('연습 완료'));
+ console.log('PASS supplied sequence: Jan 2 → 17:00 → 4 adjacent seats → three confirmed transitions → NaverPay + agreement → payment window → human final click');
+ // If a next button fails to change the stage, it must never be clicked three times.
+ await page.reload();await page.evaluate(()=>{window.nextClicks=0;document.getElementById('confirm-next').onclick=()=>window.nextClicks++;});
+ await page.getByRole('button',{name:'자동 연습 시작'}).click();await page.waitForSelector('#human-check:visible');await page.getByRole('button',{name:'내가 직접 확인 완료'}).click();await page.waitForFunction(()=>window.nextClicks===1);await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>window.nextClicks),1);assert.equal(await page.locator('#discount-stage').isVisible(),false);
+ console.log('PASS unchanged stage does not cause repeated next clicks');
  // Extension popup must load as a real extension, not just as a web page.
  if(!process.argv.includes('--web-only')){
  let [worker]=context.serviceWorkers();if(!worker)worker=await context.waitForEvent('serviceworker');
