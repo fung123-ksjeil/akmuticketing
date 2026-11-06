@@ -17,3 +17,8 @@ test('인접 구역도 붙은 좌석이 없으면 다음 가까운 구역',()=>{
  const seats=[...row('104').map(s=>({...s,available:false,x:s.number,y:0})),...row('near').map(s=>({...s,available:s.number%2===1,x:s.number+10,y:0})),...row('far').map(s=>({...s,x:s.number+100,y:0}))];
  assert.equal(TicketPlanner.chooseWithFallback(seats,2,['104'],true)[0].section,'far');
 });
+test('앞·중간·뒤는 실제 열 순서로 구분함',()=>{
+ const seats=Array.from({length:9},(_,i)=>row('104',4).map(s=>({...s,row:String(i+1),rowIndex:i+1,rowTotal:9}))).flat();
+ for(const [position,valid] of [['front',[1,2,3]],['middle',[4,5,6]],['back',[7,8,9]]]){const group=TicketPlanner.chooseWithFallback(seats,4,['104'],false,position);assert.equal(group.length,4);assert.ok(group.every(s=>valid.includes(s.rowIndex)));}
+ assert.deepEqual(TicketPlanner.chooseWithFallback(row('104'),2,['104'],false,'middle'),[]);
+});

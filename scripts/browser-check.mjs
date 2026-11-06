@@ -11,13 +11,15 @@ const base=process.env.TEST_URL||'http://127.0.0.1:3000';
 const errors=[];context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));
 try{
  const page=await context.newPage();
- await page.goto(base);await assert.equal(await page.title(),'공연 예매 도우미');
+ await page.goto(base);assert.equal(await page.title(),'악뮤 고양 킨텍스 예매 도우미');
+ await page.getByRole('button',{name:'106구역',exact:true}).click();
+ await page.getByLabel('앞쪽',{exact:true}).check();await page.getByLabel('예매 수량 · 최대 4매').selectOption('4');
+ await page.getByRole('button',{name:'설정 저장',exact:true}).click();await page.reload();
+ assert.equal(await page.getByLabel('희망 구역').inputValue(),'106');assert.equal(await page.getByLabel('예매 수량 · 최대 4매').inputValue(),'4');assert.equal(await page.getByLabel('앞쪽',{exact:true}).isChecked(),true);
+ assert.equal(await page.locator('input[type=url]').count(),0);assert.equal(await page.getByRole('button',{name:'106구역',exact:true}).getAttribute('aria-pressed'),'true');
  if(process.env.SCREENSHOT_PATH)await page.screenshot({path:process.env.SCREENSHOT_PATH,fullPage:true});
- await page.getByLabel('예매 수량').fill('3');await page.getByRole('button',{name:'공연 저장',exact:true}).click();
- await page.reload();assert.equal(await page.getByLabel('예매 수량').inputValue(),'3');
- await page.getByRole('button',{name:'다른 공연 등록'}).click();await page.getByLabel('공연 이름').fill('다른 공연');await page.getByLabel('예매 페이지 주소').fill('https://example.org/show/2');await page.getByRole('button',{name:'공연 저장',exact:true}).click();assert.equal(await page.locator('.plan-item').count(),2);
- await page.getByRole('button',{name:'악뮤 기본 설정 불러오기'}).click();assert.equal(await page.getByLabel('예매 페이지 주소').inputValue(),'https://ticket.yes24.com/Special/60840');
- console.log('PASS dashboard: registration, persistence, multiple providers, AKMU preset');
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:'확장에 전달할 설정 받기 ↓'}).click();const file=await download;const stream=await file.createReadStream();let body='';for await(const chunk of stream)body+=chunk;assert.deepEqual(JSON.parse(body),{section:'106',position:'front',count:4});
+ console.log('PASS AKMU-only dashboard: interactive map, front/middle/back, 1–4 tickets, persistence, settings export');
  await page.goto(base+'/demo.html');
  await page.addScriptTag({url:base+'/extension/plan.js'});await page.addScriptTag({url:base+'/extension/planner.js'});await page.addScriptTag({url:base+'/extension/runner.js'});
  page.on('dialog',dialog=>dialog.accept());
@@ -32,11 +34,11 @@ try{
  // Extension popup must load as a real extension, not just as a web page.
  if(!process.argv.includes('--web-only')){
  let [worker]=context.serviceWorkers();if(!worker)worker=await context.waitForEvent('serviceworker');
- const extensionId=new URL(worker.url()).host;const popup=await context.newPage();await popup.goto(`chrome-extension://${extensionId}/popup.html`);await popup.waitForSelector('#plans');assert.equal(await popup.title(),'공연 예매 도우미');
- await worker.evaluate(async()=>{await chrome.storage.local.set({plans:[{id:'alarm-test',name:'알림 테스트',url:'https://example.org/show',open:'2027-01-01T20:00',show:'2027-01-02T17:00',count:2,sections:[]}],profiles:{'https://example.org/show':{booking:'#booking'}}});});
- const reminders=await popup.evaluate(()=>chrome.runtime.sendMessage({type:'reminders',id:'alarm-test'}));assert.equal(reminders.count,4);
- const prepare=await popup.evaluate(()=>chrome.runtime.sendMessage({type:'prepare',id:'alarm-test'}));assert.match(prepare.message,/10분 전/);
- const alarms=await worker.evaluate(()=>chrome.alarms.getAll());assert.equal(alarms.filter(a=>a.name.startsWith('concert:')).length,4);assert.ok(alarms.some(a=>a.name==='prepare:alarm-test'));
+ const extensionId=new URL(worker.url()).host;const popup=await context.newPage();await popup.goto(`chrome-extension://${extensionId}/popup.html`);await popup.waitForSelector('#plans');assert.equal(await popup.title(),'악뮤 예매 도우미');
+ await worker.evaluate(async()=>{const plan=AkmuPreset.plan();await chrome.storage.local.set({akmuCount:2,profiles:{[plan.url]:{booking:'#booking'}}});});
+ const reminders=await popup.evaluate(()=>chrome.runtime.sendMessage({type:'reminders',id:'akmu-kintex'}));assert.equal(reminders.count,4);
+ const prepare=await popup.evaluate(()=>chrome.runtime.sendMessage({type:'prepare',id:'akmu-kintex'}));assert.match(prepare.message,/10분 전/);
+ const alarms=await worker.evaluate(()=>chrome.alarms.getAll());assert.equal(alarms.filter(a=>a.name.startsWith('concert:')).length,4);assert.ok(alarms.some(a=>a.name==='prepare:akmu-kintex'));
  console.log('PASS Chrome extension: popup, service worker, four reminders and 10-minute preparation alarm');
  }else console.log('NOT RUN Chrome extension runtime (--web-only); covered separately by background logic tests');
  assert.deepEqual(errors,[]);console.log('PASS no browser script errors');

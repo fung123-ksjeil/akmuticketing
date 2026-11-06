@@ -1,6 +1,6 @@
-importScripts('plan.js');
+importScripts('plan.js','preset.js');
 const prefix='concert:';
-async function storedPlan(id){const data=await chrome.storage.local.get(['plans','profiles']);const raw=(data.plans||[]).find(p=>p.id===id);if(!raw)throw Error('저장된 공연이 없습니다.');return {plan:TicketPlan.normalizePlan(raw),profile:data.profiles?.[raw.url]||{}};}
+async function storedPlan(id){if(id!=='akmu-kintex')throw Error('악뮤 전용 예매 도우미입니다.');const data=await chrome.storage.local.get(['akmuCount','akmuPreferences','profiles']);const plan=AkmuPreset.plan(data.akmuPreferences||data.akmuCount||2);return {plan,profile:data.profiles?.[plan.url]||{}};}
 async function remember(tabId,data){const saved=(await chrome.storage.session.get('preparedTabs')).preparedTabs||{};saved[String(tabId)]=data;await chrome.storage.session.set({preparedTabs:saved});}
 async function forget(tabId){const saved=(await chrome.storage.session.get('preparedTabs')).preparedTabs||{};delete saved[String(tabId)];await chrome.storage.session.set({preparedTabs:saved});}
 async function openPreparation(id,confirmedLogin=false){const {plan}=await storedPlan(id);const tab=await chrome.tabs.create({url:plan.url,active:true});await remember(tab.id,{id,confirmedLogin,expires:Date.parse(plan.open+'+09:00')+120000});await tryPrepare(tab.id);}

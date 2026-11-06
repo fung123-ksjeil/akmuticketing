@@ -3,14 +3,16 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const planSource=readFileSync(new URL('../extension/plan.js',import.meta.url),'utf8');
+const presetSource=readFileSync(new URL('../extension/preset.js',import.meta.url),'utf8');
 const backgroundSource=readFileSync(new URL('../extension/background.js',import.meta.url),'utf8');
 function setup(){
- const opening=new Date(Date.now()+2*86400000);const kst=d=>new Date(d.getTime()+9*3600000).toISOString().slice(0,16);
- const plan={id:'concert-test',name:'테스트',url:'https://example.org/show',open:kst(opening),show:kst(new Date(opening.getTime()+86400000)),count:2,sections:['104']};
- const local={plans:[plan],profiles:{[plan.url]:{booking:'#booking'}}},session={},alarms=new Map(),tabs=new Map(),handlers={},calls=[];let tabId=0;
+ const opening=new Date('2026-11-10T11:00:00Z');const kst=d=>new Date(d.getTime()+9*3600000).toISOString().slice(0,16);
+ const plan={id:'akmu-kintex',name:'테스트',url:'https://ticket.yes24.com/Special/60840',open:kst(opening),show:kst(new Date(opening.getTime()+86400000)),count:2,sections:['104']};
+ const local={plans:[plan],akmuCount:2,profiles:{[plan.url]:{booking:'#booking'}}},session={},alarms=new Map(),tabs=new Map(),handlers={},calls=[];let tabId=0;
  const event=name=>({addListener(fn){handlers[name]=fn;}}),storage=data=>({async get(key){return Object.fromEntries((Array.isArray(key)?key:[key]).map(k=>[k,structuredClone(data[k])]));},async set(patch){Object.assign(data,structuredClone(patch));}});
  const chrome={storage:{local:storage(local),session:storage(session)},runtime:{onMessage:event('message')},alarms:{onAlarm:event('alarm'),async getAll(){return [...alarms.values()];},async create(name,info){alarms.set(name,{name,...info});},async clear(name){return alarms.delete(name);}},tabs:{onUpdated:event('updated'),onRemoved:event('removed'),async create({url}){const tab={id:++tabId,url,status:'complete'};tabs.set(tab.id,tab);calls.push(['open',url]);return tab;},async get(id){if(!tabs.has(id))throw Error('Tab missing');return tabs.get(id);},async update(id,patch){Object.assign(tabs.get(id),patch);calls.push(['update',id,patch]);return tabs.get(id);},async query(){return [...tabs.values()].slice(-1);}},scripting:{async executeScript(opts){calls.push(['script',opts]);return [{result:typeof opts.args?.[0]==='string'?true:'시작 대기를 켰습니다.'}];}},notifications:{onClicked:event('notification'),async create(id,data){calls.push(['notification',id,data]);},async clear(){}}};
- const context=vm.createContext({chrome,URL,Date,Set,console,setTimeout,clearTimeout});context.importScripts=()=>vm.runInContext(planSource,context);vm.runInContext(backgroundSource,context);
+ class FixedDate extends Date{static now(){return Date.parse('2026-11-06T10:00:00Z');}}
+ const context=vm.createContext({chrome,URL,Date:FixedDate,Set,console,setTimeout,clearTimeout});context.importScripts=()=>{vm.runInContext(planSource,context);vm.runInContext(presetSource,context);};vm.runInContext(backgroundSource,context);
  const send=message=>new Promise(resolve=>handlers.message(message,{},resolve));
  return {plan,local,session,alarms,tabs,handlers,calls,send};
 }
